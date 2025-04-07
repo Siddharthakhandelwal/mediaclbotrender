@@ -132,10 +132,35 @@ export const useSpeechRecognition = (
     try {
       recognition.start();
       setIsListening(true);
+      
+      // Handle auto-termination by restarting if needed
+      const keepAliveHandler = () => {
+        if (isListening) {
+          try {
+            recognition.start();
+          } catch (e) {
+            // Ignore "already started" errors
+            if (e instanceof Error && !e.message.includes('already started')) {
+              console.error('Error restarting speech recognition', e);
+            }
+          }
+        }
+      };
+      
+      // Override onend to keep recognition alive
+      const originalOnEnd = recognition.onend;
+      recognition.onend = () => {
+        if (isListening) {
+          keepAliveHandler();
+        } else if (originalOnEnd) {
+          originalOnEnd.call(recognition);
+        }
+      };
+      
     } catch (error) {
       console.error('Error starting speech recognition', error);
     }
-  }, [recognition]);
+  }, [recognition, isListening]);
   
   // Stop listening function
   const stopListening = useCallback(() => {

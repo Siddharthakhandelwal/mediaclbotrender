@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { QuickActionButton } from '../types';
-import { Send, Paperclip, Mic, MicOff, StopCircle, SmilePlus } from 'lucide-react';
+import { Send, Mic, MicOff, StopCircle, SmilePlus, Volume2 } from 'lucide-react';
 
 interface InputAreaProps {
   inputValue: string;
@@ -37,15 +37,6 @@ const InputArea: React.FC<InputAreaProps> = ({
     <div className="border-t border-gray-200 p-3 bg-gray-50">
       <div className="flex space-x-2">
         <div className="flex space-x-2 items-center px-3 py-2 bg-gray-200 rounded-full">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-gray-600 hover:text-gray-800 h-6 w-6 p-0"
-            title="Upload file"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          
           {hasRecognitionSupport && (
             <Button 
               variant="ghost" 

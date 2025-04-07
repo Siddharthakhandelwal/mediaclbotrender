@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { ChatMessage } from '../types';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { User } from 'lucide-react';
+import { User, Volume2 } from 'lucide-react';
 import { getAvatarUrl } from '@/lib/utils';
 import ChatAvatar from './ChatAvatar';
+import { Button } from '@/components/ui/button';
+import voiceService from '../services/VoiceService';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -22,6 +24,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const toggleAvatarMode = () => {
     setUse3D(!use3D);
   };
+  
+  // Play text aloud using the voice service
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  const playMessage = () => {
+    voiceService.toggleSpeech(message.content)
+      .catch(err => console.error('Error playing message:', err));
+  };
+  
+  // Update isPlaying state when voice service speaking state changes
+  React.useEffect(() => {
+    const onSpeakingChange = (speaking: boolean) => {
+      setIsPlaying(speaking);
+    };
+    
+    voiceService.onSpeakingChange(onSpeakingChange);
+    
+    return () => {
+      voiceService.removeSpeakingCallback(onSpeakingChange);
+    };
+  }, []);
 
   if (isUserMessage) {
     return (
@@ -64,12 +87,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </Avatar>
         )}
       </div>
-      <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+      <div className="bg-gray-100 rounded-lg p-3 max-w-[80%] relative">
         <div className="font-medium text-gray-800">
           {message.content}
         </div>
-        <div className="text-xs text-gray-500 mt-1">
-          {formatTime(message.timestamp)}
+        <div className="flex justify-between items-center mt-1">
+          <div className="text-xs text-gray-500">
+            {formatTime(message.timestamp)}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`${isPlaying ? 'text-primary' : 'text-gray-400'} hover:text-primary h-6 w-6 p-0 ml-2`}
+            onClick={playMessage}
+            title={isPlaying ? "Stop speaking" : "Play message"}
+          >
+            <Volume2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>

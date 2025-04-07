@@ -103,6 +103,8 @@ class VoiceService {
    */
   public onSpeakingChange(callback: (speaking: boolean) => void): void {
     this.speakingCallbacks.push(callback);
+    // Immediately call with current state
+    callback(this.speaking);
   }
 
   /**
@@ -111,6 +113,20 @@ class VoiceService {
    */
   public removeSpeakingCallback(callback: (speaking: boolean) => void): void {
     this.speakingCallbacks = this.speakingCallbacks.filter(cb => cb !== callback);
+  }
+  
+  /**
+   * Toggle speech - start speaking if silent, stop if speaking
+   * @param text Text to speak
+   * @returns Promise that resolves when the action is complete
+   */
+  public toggleSpeech(text: string): Promise<void> {
+    if (this.speaking) {
+      this.stop();
+      return Promise.resolve();
+    } else {
+      return this.speak(text);
+    }
   }
 
   private notifySpeakingChange(): void {
