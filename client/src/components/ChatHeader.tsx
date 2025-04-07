@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Settings, Info, Minimize, Maximize } from 'lucide-react';
+import { getAvatarUrl } from '@/lib/utils';
 
 const ChatHeader: React.FC = () => {
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
@@ -29,9 +31,10 @@ const ChatHeader: React.FC = () => {
   return (
     <div className="bg-primary p-4 text-white flex items-center justify-between border-b border-gray-200">
       <div className="flex items-center space-x-3">
-        <div className="rounded-full bg-white p-2 flex-shrink-0">
-          <Heart className="text-primary h-5 w-5" />
-        </div>
+        <Avatar className="h-10 w-10 border-2 border-white">
+          <AvatarImage src={getAvatarUrl('assistant')} alt="Medical Assistant" />
+          <AvatarFallback className="bg-white text-primary font-bold">MA</AvatarFallback>
+        </Avatar>
         <div>
           <h1 className="font-semibold text-lg">Medical Assistant</h1>
           <div className="flex items-center text-xs">
@@ -50,7 +53,7 @@ const ChatHeader: React.FC = () => {
           className="text-white hover:bg-primary-dark rounded-full h-9 w-9 p-0"
           title="Information"
         >
-          <i className="ri-information-line"></i>
+          <Info className="h-5 w-5" />
         </Button>
         <Button 
           variant="ghost" 
@@ -58,7 +61,7 @@ const ChatHeader: React.FC = () => {
           className="text-white hover:bg-primary-dark rounded-full h-9 w-9 p-0"
           title="Settings"
         >
-          <i className="ri-settings-3-line"></i>
+          <Settings className="h-5 w-5" />
         </Button>
         <Button 
           variant="ghost" 
@@ -68,9 +71,9 @@ const ChatHeader: React.FC = () => {
           title={isMinimized ? "Expand" : "Minimize"}
         >
           {isMinimized ? (
-            <i className="ri-fullscreen-line"></i>
+            <Maximize className="h-5 w-5" />
           ) : (
-            <i className="ri-subtract-line"></i>
+            <Minimize className="h-5 w-5" />
           )}
         </Button>
       </div>

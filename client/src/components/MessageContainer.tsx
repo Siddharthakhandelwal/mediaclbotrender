@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import MessageBubble from './MessageBubble';
 import EmbeddedService from './EmbeddedService';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ChatMessage } from '../types';
+import { getAvatarUrl } from '@/lib/utils';
 
 interface MessageContainerProps {
   messages: ChatMessage[];
@@ -34,8 +36,16 @@ const MessageContainer: React.FC<MessageContainerProps> = ({
       {/* Typing indicator */}
       {isLoading && (
         <div className="flex items-start space-x-2">
-          <div className="rounded-full bg-primary p-2 flex-shrink-0">
-            <i className="ri-heart-pulse-line text-white text-sm"></i>
+          <div className="flex-shrink-0">
+            <Avatar className="h-8 w-8 bg-primary">
+              <AvatarImage 
+                src={getAvatarUrl('assistant')} 
+                alt="Medical Assistant" 
+              />
+              <AvatarFallback className="bg-primary text-white font-bold">
+                MA
+              </AvatarFallback>
+            </Avatar>
           </div>
           <div className="bg-gray-100 rounded-lg p-3">
             <div className="typing-indicator">
