@@ -1,0 +1,228 @@
+// Using standard fetch API for Groq instead of requiring an SDK
+export async function generateChatResponse(message: string, messageHistory: any[] = []) {
+  try {
+    const lowerMessage = message.toLowerCase();
+    
+    // Determine if the message is requesting a specific service
+    let serviceType = "none";
+    let query = "";
+    
+    if (lowerMessage.includes("appointment") || 
+        lowerMessage.includes("schedule") || 
+        lowerMessage.includes("book")) {
+      serviceType = "appointment";
+    } else if (lowerMessage.includes("search") || 
+               lowerMessage.includes("find information") || 
+               lowerMessage.includes("look up")) {
+      serviceType = "search";
+      query = extractSearchQuery(message);
+    } else if (lowerMessage.includes("video") || 
+               lowerMessage.includes("youtube") || 
+               lowerMessage.includes("watch")) {
+      serviceType = "video";
+      query = extractSearchQuery(message);
+    }
+    
+    // Prepare conversation history for the Groq API
+    const formattedHistory = messageHistory.map((msg: any) => ({
+      role: msg.role,
+      content: msg.content
+    }));
+    
+    // Add system message
+    const systemMessage = {
+      role: "system",
+      content: "You are a helpful medical front desk assistant. Be professional, concise, and friendly. " +
+               "Your primary goal is to help patients with their medical queries and tasks."
+    };
+    
+    // Prepare the messages for the API request
+    const messages = [
+      systemMessage,
+      ...formattedHistory,
+      { role: "user", content: message }
+    ];
+    
+    // Make the API request to Groq
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b",  // Using Llama 3.1 8B model - faster and free
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Groq API error:", errorData);
+      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Extract the response text
+    const botResponse = data.choices[0].message.content || "I'm sorry, I couldn't process your request.";
+    
+    // Prepare service data based on the detected service type
+    let serviceData = null;
+    
+    if (serviceType === "appointment") {
+      serviceData = {
+        type: "appointment",
+        data: prepareAppointmentData()
+      };
+    } else if (serviceType === "search" && query) {
+      serviceData = {
+        type: "search",
+        query,
+        data: prepareSearchData(query)
+      };
+    } else if (serviceType === "video" && query) {
+      serviceData = {
+        type: "video",
+        query,
+        data: prepareVideoData(query)
+      };
+    }
+    
+    return {
+      message: botResponse,
+      service: serviceData
+    };
+  } catch (error) {
+    console.error("Error generating chat response:", error);
+    return {
+      message: "I apologize, but I'm having trouble processing your request right now. Please try again later.",
+      service: null
+    };
+  }
+}
+
+// Helper function to extract search query from message
+function extractSearchQuery(message: string): string {
+  // Simple extraction - in a real application this would be more sophisticated
+  const commonPhrases = [
+    "search for",
+    "find information about",
+    "look up",
+    "tell me about",
+    "information on",
+    "video about",
+    "play a video on",
+    "show me"
+  ];
+  
+  let query = message;
+  
+  for (const phrase of commonPhrases) {
+    if (message.toLowerCase().includes(phrase)) {
+      const parts = message.toLowerCase().split(phrase);
+      if (parts.length > 1) {
+        query = parts[1].trim();
+        break;
+      }
+    }
+  }
+  
+  // If query is still the full message, try to extract the key terms
+  if (query === message) {
+    // Remove question words and common verbs
+    const wordsToRemove = ["what", "where", "when", "how", "why", "can", "could", "would", "should", "is", "are", "was", "were", "you", "i", "me", "my", "mine", "help"];
+    const words = message.toLowerCase().split(/\s+/);
+    query = words.filter(word => !wordsToRemove.includes(word)).join(" ").trim();
+  }
+  
+  return query;
+}
+
+// Prepare appointment data
+function prepareAppointmentData() {
+  // For a real application, this would fetch available appointment slots from a database
+  return {
+    appointmentTypes: ["General Check-up", "Specialist Consultation", "Follow-up", "Vaccination"],
+    doctors: ["Dr. Smith", "Dr. Johnson", "Dr. Williams", "Dr. Brown"]
+  };
+}
+
+// Prepare search results data
+function prepareSearchData(query: string) {
+  // For a real application, this would use a search API
+  if (query.includes("diabetes")) {
+    return {
+      title: "Diabetes Information",
+      summary: "Information about diabetes symptoms and management",
+      featuredInfo: {
+        title: "Common symptoms of diabetes include:",
+        content: [
+          "Increased thirst and urination",
+          "Extreme fatigue",
+          "Blurry vision",
+          "Cuts/bruises that are slow to heal",
+          "Weight loss, even though you are eating more (type 1)",
+          "Tingling, pain, or numbness in the hands/feet (type 2)"
+        ],
+        source: "American Diabetes Association"
+      },
+      results: [
+        {
+          title: "Diabetes Symptoms: When to see a doctor | Mayo Clinic",
+          url: "https://www.mayoclinic.org/diseases-conditions/diabetes/symptoms-causes/syc-20371444",
+          displayUrl: "www.mayoclinic.org › diseases-conditions › diabetes › symptoms-causes",
+          snippet: "Diabetes symptoms vary depending on how much your blood sugar is elevated. Some people, especially those with prediabetes or type 2 diabetes, may not ..."
+        },
+        {
+          title: "Symptoms & Causes of Diabetes | NIDDK",
+          url: "https://www.niddk.nih.gov/health-information/diabetes/overview/symptoms-causes",
+          displayUrl: "www.niddk.nih.gov › health-information › diabetes",
+          snippet: "What are the symptoms of diabetes? Symptoms of diabetes include increased thirst and urination, fatigue, and blurred vision. Some people with ..."
+        },
+        {
+          title: "Diabetes Symptoms | CDC",
+          url: "https://www.cdc.gov/diabetes/basics/symptoms.html",
+          displayUrl: "www.cdc.gov › diabetes › basics › symptoms",
+          snippet: "Learn about diabetes symptoms such as frequent urination, increased thirst, and unexplained weight loss. Early detection and treatment can prevent ..."
+        }
+      ]
+    };
+  } else {
+    return {
+      title: query,
+      summary: `Information about ${query}`,
+      results: [
+        {
+          title: `Medical Information about ${query} | MedlinePlus`,
+          url: `https://medlineplus.gov/search?query=${encodeURIComponent(query)}`,
+          displayUrl: `medlineplus.gov › search › ${query.replace(/\s+/g, '+')}`,
+          snippet: `Comprehensive medical information about ${query} including symptoms, treatments, and prevention measures.`
+        },
+        {
+          title: `${query} - Health Information | Mayo Clinic`,
+          url: `https://www.mayoclinic.org/search/search-results?q=${encodeURIComponent(query)}`,
+          displayUrl: `www.mayoclinic.org › search › ${query.replace(/\s+/g, '+')}`,
+          snippet: `Learn about the causes, symptoms, diagnosis & treatment of ${query} from the Mayo Clinic.`
+        }
+      ]
+    };
+  }
+}
+
+// Prepare video data
+function prepareVideoData(query: string) {
+  // For a real application, this would use YouTube API
+  return {
+    title: `Managing ${query}: Healthy Living Tips`,
+    videoId: "dQw4w9WgXcQ", // Example video ID
+    thumbnail: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+    duration: "6:42",
+    channel: `${query} Health Association`,
+    views: "23K",
+    likes: "450",
+    description: `This video provides practical tips for managing ${query} through diet, exercise, and lifestyle changes. Learn about prevention, treatment options, and how to live a healthy life.`
+  };
+}

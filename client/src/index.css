@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  .chat-container {
+    height: calc(100vh - 2rem);
+  }
+
+  .message-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .message-container::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  .message-container::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  .typing-indicator {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .typing-indicator span {
+    height: 7px;
+    width: 7px;
+    @apply bg-gray-400 rounded-full inline-block mr-1;
+    animation: bounce 1.5s infinite ease-in-out;
+  }
+
+  .typing-indicator span:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+    margin-right: 0;
+  }
+
+  @keyframes bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .service-area {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  }
+
+  .service-area.fullscreen {
+    position: fixed;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    z-index: 50;
+    @apply shadow-xl;
+  }
+
+  .service-content.fullscreen {
+    height: calc(100% - 50px);
+    overflow-y: auto;
+  }
+}
