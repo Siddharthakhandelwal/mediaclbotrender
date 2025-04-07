@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { QuickActionButton } from '../types';
-import { Send, Paperclip, Mic, SmilePlus } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, StopCircle, SmilePlus } from 'lucide-react';
 
 interface InputAreaProps {
   inputValue: string;
@@ -12,6 +12,11 @@ interface InputAreaProps {
   onQuickActionClick: (actionText: string) => void;
   quickActions: QuickActionButton[];
   isLoading: boolean;
+  isListening?: boolean;
+  isSpeaking?: boolean;
+  onToggleVoiceInput?: () => void;
+  onStopSpeech?: () => void;
+  hasRecognitionSupport?: boolean;
 }
 
 const InputArea: React.FC<InputAreaProps> = ({
@@ -21,7 +26,12 @@ const InputArea: React.FC<InputAreaProps> = ({
   onSendMessage,
   onQuickActionClick,
   quickActions,
-  isLoading
+  isLoading,
+  isListening = false,
+  isSpeaking = false,
+  onToggleVoiceInput = () => {},
+  onStopSpeech = () => {},
+  hasRecognitionSupport = false
 }) => {
   return (
     <div className="border-t border-gray-200 p-3 bg-gray-50">
@@ -35,21 +45,37 @@ const InputArea: React.FC<InputAreaProps> = ({
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-gray-600 hover:text-gray-800 h-6 w-6 p-0"
-            title="Voice input"
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
+          
+          {hasRecognitionSupport && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`${isListening ? 'text-red-500' : 'text-gray-600'} hover:text-gray-800 h-6 w-6 p-0`}
+              title={isListening ? "Stop voice input" : "Start voice input"}
+              onClick={onToggleVoiceInput}
+            >
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+          )}
+          
+          {isSpeaking && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+              title="Stop speaking"
+              onClick={onStopSpeech}
+            >
+              <StopCircle className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         
         <div className="flex-1 relative">
           <Input
             type="text"
-            className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="Type your message here..."
+            className={`w-full px-4 py-2 border ${isListening ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
+            placeholder={isListening ? "Listening..." : "Type your message here..."}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyPress}

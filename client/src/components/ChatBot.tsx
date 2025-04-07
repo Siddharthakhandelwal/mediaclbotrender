@@ -11,10 +11,15 @@ const ChatBot: React.FC = () => {
     inputValue,
     quickActions,
     messagesEndRef,
+    isListening,
+    isSpeaking,
+    hasRecognitionSupport,
     handleSendMessage,
     handleQuickAction,
     handleInputChange,
     handleKeyPress,
+    toggleVoiceInput,
+    stopSpeech
   } = useChatbot();
 
   return (
@@ -36,6 +41,11 @@ const ChatBot: React.FC = () => {
           onQuickActionClick={handleQuickAction}
           quickActions={quickActions}
           isLoading={isLoading}
+          isListening={isListening}
+          isSpeaking={isSpeaking}
+          onToggleVoiceInput={toggleVoiceInput}
+          onStopSpeech={stopSpeech}
+          hasRecognitionSupport={hasRecognitionSupport}
         />
       </div>
     </div>

@@ -24,13 +24,13 @@ const MessageContainer: React.FC<MessageContainerProps> = ({
   return (
     <div className="message-container flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message) => (
-        <React.Fragment key={message.id}>
+        <div key={message.id} className="message-group space-y-2">
           <MessageBubble message={message} />
           
           {message.service && message.service.type !== 'none' && (
             <EmbeddedService service={message.service} />
           )}
-        </React.Fragment>
+        </div>
       ))}
       
       {/* Typing indicator */}
