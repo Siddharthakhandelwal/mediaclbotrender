@@ -6,11 +6,14 @@ export async function generateChatResponse(message: string, messageHistory: any[
     // Determine if the message is requesting a specific service
     let serviceType = "none";
     let query = "";
+    let extractedAppointmentDetails = null;
     
+    // Check for appointment requests and extract date and time if available
     if (lowerMessage.includes("appointment") || 
         lowerMessage.includes("schedule") || 
         lowerMessage.includes("book")) {
       serviceType = "appointment";
+      extractedAppointmentDetails = extractAppointmentDetails(message);
     } else if (lowerMessage.includes("search") || 
                lowerMessage.includes("find information") || 
                lowerMessage.includes("look up")) {
@@ -101,7 +104,7 @@ export async function generateChatResponse(message: string, messageHistory: any[
     if (serviceType === "appointment") {
       serviceData = {
         type: "appointment",
-        data: prepareAppointmentData()
+        data: prepareAppointmentData(extractedAppointmentDetails || undefined)
       };
     } else if (serviceType === "search" && query) {
       serviceData = {
@@ -167,13 +170,150 @@ function extractSearchQuery(message: string): string {
   return query;
 }
 
+// Extract appointment details from a message
+function extractAppointmentDetails(message: string) {
+  const lowerMessage = message.toLowerCase();
+  
+  // Extract date information
+  let date = null;
+  let time = null;
+  let type = null;
+  
+  // Check for common date patterns
+  const todayPattern = /\b(today)\b/i;
+  const tomorrowPattern = /\b(tomorrow)\b/i;
+  const datePattern = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(st|nd|rd|th)?\b/i;
+  const numericDatePattern = /\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/;
+  const dayPattern = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+  
+  // Check for common time patterns
+  const timePattern = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i;
+  const hourPattern = /\b(at|@)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i;
+  
+  // Extract appointment type
+  const typePatterns = [
+    { pattern: /\b(general|check[-\s]?up|physical|routine|annual)\b/i, type: "General Check-up" },
+    { pattern: /\b(specialist|consult|consultation|refer|referral)\b/i, type: "Specialist Consultation" },
+    { pattern: /\b(follow[-\s]?up|checking|monitoring)\b/i, type: "Follow-up" },
+    { pattern: /\b(vaccine|vaccination|shot|immunization|booster|flu)\b/i, type: "Vaccination" }
+  ];
+  
+  // Try to extract date
+  if (todayPattern.test(lowerMessage)) {
+    const today = new Date();
+    date = today.toISOString().split('T')[0];
+  } else if (tomorrowPattern.test(lowerMessage)) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    date = tomorrow.toISOString().split('T')[0];
+  } else if (datePattern.test(lowerMessage)) {
+    const matches = lowerMessage.match(datePattern);
+    if (matches && matches.length >= 3) {
+      const month = matches[1];
+      const day = parseInt(matches[2]);
+      const monthIndex = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"].indexOf(month.toLowerCase());
+      
+      if (monthIndex !== -1) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const dateObj = new Date(year, monthIndex, day);
+        
+        // If the date is in the past, assume next year
+        if (dateObj < now) {
+          dateObj.setFullYear(year + 1);
+        }
+        
+        date = dateObj.toISOString().split('T')[0];
+      }
+    }
+  } else if (dayPattern.test(lowerMessage)) {
+    const matches = lowerMessage.match(dayPattern);
+    if (matches && matches.length > 1) {
+      const targetDay = matches[1].toLowerCase();
+      const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const targetDayIndex = days.indexOf(targetDay);
+      
+      if (targetDayIndex !== -1) {
+        const now = new Date();
+        const currentDayIndex = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        // Calculate days to add
+        let daysToAdd = targetDayIndex - currentDayIndex;
+        if (daysToAdd <= 0) daysToAdd += 7; // Next week
+        
+        const targetDate = new Date(now);
+        targetDate.setDate(now.getDate() + daysToAdd);
+        
+        date = targetDate.toISOString().split('T')[0];
+      }
+    }
+  }
+  
+  // Try to extract time
+  if (timePattern.test(lowerMessage)) {
+    const matches = lowerMessage.match(timePattern);
+    if (matches && matches.length >= 4) {
+      let hour = parseInt(matches[1]);
+      const minute = matches[2] ? matches[2] : "00";
+      const amPm = matches[3].toLowerCase();
+      
+      // Convert to 12-hour format
+      if (amPm === "pm" && hour < 12) hour += 12;
+      if (amPm === "am" && hour === 12) hour = 0;
+      
+      time = `${hour % 12 || 12}:${minute} ${amPm.toUpperCase()}`;
+    }
+  } else if (hourPattern.test(lowerMessage)) {
+    const matches = lowerMessage.match(hourPattern);
+    if (matches && matches.length >= 5) {
+      let hour = parseInt(matches[2]);
+      const minute = matches[3] ? matches[3] : "00";
+      const amPm = matches[4] ? matches[4].toLowerCase() : (hour < 12 ? "am" : "pm");
+      
+      // Convert to 12-hour format
+      if (amPm === "pm" && hour < 12) hour += 12;
+      if (amPm === "am" && hour === 12) hour = 0;
+      
+      time = `${hour % 12 || 12}:${minute} ${amPm.toUpperCase()}`;
+    }
+  }
+  
+  // Try to extract type
+  for (const { pattern, type: appointmentType } of typePatterns) {
+    if (pattern.test(lowerMessage)) {
+      type = appointmentType;
+      break;
+    }
+  }
+  
+  return { date, time, type };
+}
+
+// Define the type for appointment data
+interface AppointmentData {
+  appointmentTypes: string[];
+  doctors: string[];
+  extractedDetails?: {
+    date: string | null;
+    time: string | null;
+    type: string | null;
+  };
+}
+
 // Prepare appointment data
-function prepareAppointmentData() {
+function prepareAppointmentData(extractedDetails?: { date: string | null; time: string | null; type: string | null; } | null): AppointmentData {
   // For a real application, this would fetch available appointment slots from a database
-  return {
+  const data: AppointmentData = {
     appointmentTypes: ["General Check-up", "Specialist Consultation", "Follow-up", "Vaccination"],
     doctors: ["Dr. Smith", "Dr. Johnson", "Dr. Williams", "Dr. Brown"]
   };
+  
+  // If we have extracted details, add them to the data
+  if (extractedDetails) {
+    data.extractedDetails = extractedDetails;
+  }
+  
+  return data;
 }
 
 // Prepare search results data

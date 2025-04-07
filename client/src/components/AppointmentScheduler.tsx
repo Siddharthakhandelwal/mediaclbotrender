@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
@@ -7,9 +7,38 @@ interface AppointmentSchedulerProps {
 }
 
 const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ data }) => {
-  const [selectedType, setSelectedType] = useState<string>(data?.selectedType || 'General Check-up');
-  const [selectedDate, setSelectedDate] = useState<string>(data?.selectedDate || '');
-  const [selectedTime, setSelectedTime] = useState<string>(data?.selectedTime || '');
+  // Extract appointment details from data if available
+  const extractedDetails = data?.extractedDetails || {};
+  const hasExtractedDetails = !!(extractedDetails.date || extractedDetails.time || extractedDetails.type);
+  
+  const [selectedType, setSelectedType] = useState<string>(
+    extractedDetails.type || data?.selectedType || 'General Check-up'
+  );
+  const [selectedDate, setSelectedDate] = useState<string>(
+    extractedDetails.date || data?.selectedDate || ''
+  );
+  const [selectedTime, setSelectedTime] = useState<string>(
+    extractedDetails.time || data?.selectedTime || ''
+  );
+  
+  // Track if the appointment can be automatically confirmed based on the extracted data
+  const [autoConfirm, setAutoConfirm] = useState<boolean>(false);
+  
+  // Check if we can automatically confirm based on extracted details
+  useEffect(() => {
+    if (hasExtractedDetails && extractedDetails.date && extractedDetails.time) {
+      setAutoConfirm(true);
+      
+      // Auto-confirm after a short delay to allow user to see the selections
+      const timer = setTimeout(() => {
+        if (selectedType && selectedDate && selectedTime) {
+          handleConfirmAppointment();
+        }
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasExtractedDetails, selectedType, selectedDate, selectedTime]);
 
   // Generate days for the calendar
   const generateDays = () => {
@@ -72,6 +101,15 @@ const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ data }) => 
 
   return (
     <div className="p-4">
+      {autoConfirm && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="text-green-800 font-medium mb-1">Appointment details detected!</div>
+          <div className="text-sm text-green-700">
+            Your appointment will be automatically confirmed in a moment.
+          </div>
+        </div>
+      )}
+      
       <div className="mb-4">
         <div className="text-sm text-gray-600 mb-2">Select appointment type:</div>
         <div className="flex flex-wrap gap-2 mb-4">
