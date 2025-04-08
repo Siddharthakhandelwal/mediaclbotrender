@@ -30,4 +30,9 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  // Define environment variables that should be available on the client side
+  define: {
+    'import.meta.env.ELEVEN_LABS_API_KEY': JSON.stringify(process.env.ELEVEN_LABS_API_KEY),
+    'import.meta.env.GROQ_API_KEY': JSON.stringify(process.env.GROQ_API_KEY),
+  },
 });

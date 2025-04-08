@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChatContext } from '../context/ChatContext';
 import { useSpeechRecognition } from './useSpeechRecognition';
-import voiceService from '../services/VoiceService';
+import elevenLabsService from '../services/ElevenLabsService';
 import { QuickActionButton } from '../types';
 
 export const useChatbot = () => {
@@ -32,14 +32,21 @@ export const useChatbot = () => {
   // Scroll to bottom of messages when messages change
   useEffect(() => {
     scrollToBottom();
+    
+    // Speak the most recent assistant message
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === 'assistant') {
+      // Use more natural speech with Eleven Labs
+      elevenLabsService.speak(lastMessage.content);
+    }
   }, [messages]);
   
   // Set up voice service speaking change listener
   useEffect(() => {
-    voiceService.onSpeakingChange(handleSpeakingChange);
+    elevenLabsService.onSpeakingChange(handleSpeakingChange);
     
     return () => {
-      voiceService.removeSpeakingCallback(handleSpeakingChange);
+      elevenLabsService.removeSpeakingCallback(handleSpeakingChange);
     };
   }, []);
   
@@ -66,6 +73,11 @@ export const useChatbot = () => {
       stopListening();
       setIsListeningForVoice(false);
     } else {
+      // Stop speaking when starting to listen
+      if (isSpeaking) {
+        elevenLabsService.stop();
+      }
+      
       startListening();
       setIsListeningForVoice(true);
     }
@@ -94,6 +106,11 @@ export const useChatbot = () => {
       setIsListeningForVoice(false);
     }
     
+    // Stop any current speech when sending a new message
+    if (isSpeaking) {
+      elevenLabsService.stop();
+    }
+    
     const message = inputValue;
     setInputValue('');
     resetTranscript();
@@ -105,13 +122,18 @@ export const useChatbot = () => {
   const handleQuickAction = async (actionText: string) => {
     if (isLoading) return;
     
+    // Stop any current speech when clicking quick action
+    if (isSpeaking) {
+      elevenLabsService.stop();
+    }
+    
     await sendMessage(actionText);
   };
   
   // Stop speech
   const stopSpeech = () => {
     if (isSpeaking) {
-      voiceService.stop();
+      elevenLabsService.stop();
     }
   };
   
