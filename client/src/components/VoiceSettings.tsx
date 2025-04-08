@@ -8,10 +8,11 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Settings, Volume2 } from 'lucide-react';
+import { Settings as SettingsIcon, Volume2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import voiceService from '../services/VoiceService';
 
 interface VoiceSettingsProps {
@@ -23,6 +24,8 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [gender, setGender] = useState<'male' | 'female'>('female');
   const [accent, setAccent] = useState('Indian');
+  const [selectedVoiceIndex, setSelectedVoiceIndex] = useState<number | undefined>(undefined);
+  const [variation, setVariation] = useState(true);
   const [testVoice, setTestVoice] = useState('');
   
   // Load voices when the component mounts
@@ -31,6 +34,8 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
     const currentPreference = voiceService.getVoicePreference();
     setGender(currentPreference.gender);
     setAccent(currentPreference.accent);
+    setSelectedVoiceIndex(currentPreference.voiceIndex);
+    setVariation(currentPreference.variation !== false); // Default to true if not set
     
     // Get available voices
     const availableVoices = voiceService.getVoices();
@@ -44,11 +49,18 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
   const applyVoiceSettings = () => {
     voiceService.setVoicePreference({
       gender,
-      accent
+      accent,
+      voiceIndex: selectedVoiceIndex,
+      variation
     });
     
-    // Play test voice
-    voiceService.speak(testVoice);
+    // Play test voice with selected voice
+    voiceService.speak(testVoice, selectedVoiceIndex);
+  };
+  
+  // Test specific voice
+  const testSpecificVoice = (index: number) => {
+    voiceService.speak(testVoice, index);
   };
   
   return (
@@ -60,7 +72,7 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
           className={`text-gray-600 hover:text-primary hover:bg-gray-100 ${className}`}
           title="Voice Settings"
         >
-          <Settings className="h-5 w-5" />
+          <SettingsIcon className="h-5 w-5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -100,9 +112,59 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
                 <SelectItem value="Indian">Indian</SelectItem>
                 <SelectItem value="American">American</SelectItem>
                 <SelectItem value="British">British</SelectItem>
-                <SelectItem value="">Default</SelectItem>
+                <SelectItem value="Default">Default</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Select Specific Voice</h3>
+            <Select 
+              value={selectedVoiceIndex !== undefined ? selectedVoiceIndex.toString() : ''} 
+              onValueChange={(value) => setSelectedVoiceIndex(value ? parseInt(value) : undefined)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Auto (based on gender/accent)" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[200px]">
+                <SelectItem value="">Auto (based on gender/accent)</SelectItem>
+                {voices.map((voice, index) => (
+                  <SelectItem key={index} value={index.toString()}>
+                    {voice.name} ({voice.lang})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => selectedVoiceIndex !== undefined && testSpecificVoice(selectedVoiceIndex)}
+                disabled={selectedVoiceIndex === undefined}
+                className="text-xs"
+              >
+                Test Selected Voice
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Natural Voice Variation</h3>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="variation-toggle" className="text-xs text-gray-500">
+                  {variation ? 'On' : 'Off'}
+                </Label>
+                <Switch 
+                  id="variation-toggle" 
+                  checked={variation} 
+                  onCheckedChange={setVariation}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Enables small variations in pitch and speed to make speech sound more natural and less repetitive.
+            </p>
           </div>
           
           <div className="space-y-2">
@@ -117,7 +179,7 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
               <Button 
                 variant="outline" 
                 size="icon"
-                onClick={() => voiceService.speak(testVoice)}
+                onClick={() => voiceService.speak(testVoice, selectedVoiceIndex)}
                 title="Test Voice"
               >
                 <Volume2 className="h-4 w-4" />

@@ -5,6 +5,7 @@ interface VoicePreference {
   gender: 'male' | 'female';
   accent: string;
   voiceIndex?: number;
+  variation: boolean; // Flag to enable speech variation to avoid repetitive patterns
 }
 
 class VoiceService {
@@ -14,7 +15,9 @@ class VoiceService {
   private speakingCallbacks: ((speaking: boolean) => void)[] = [];
   private voicePreference: VoicePreference = {
     gender: 'female',
-    accent: 'Indian'
+    accent: 'Indian',
+    variation: true,
+    voiceIndex: undefined
   };
 
   constructor() {
@@ -192,14 +195,44 @@ class VoiceService {
       // Log the selected voice
       console.log('Using voice:', utterance.voice ? `${utterance.voice.name} (${utterance.voice.lang})` : 'Default');
       
-      // Configure speech parameters - slightly adjust for Indian accent if needed
-      if (this.voicePreference.accent === 'Indian' && !utterance.voice?.name.toLowerCase().includes('india')) {
-        utterance.pitch = 1.1;  // Slightly higher pitch
-        utterance.rate = 0.9;   // Slightly slower rate
+      // Apply voice variations to prevent repetitive speech patterns
+      if (this.voicePreference.variation) {
+        // Generate a small random variation for pitch and rate
+        // Use sentence length to influence variation (longer sentences get more variety)
+        const sentenceCount = (text.match(/[.!?]+\s/g) || []).length + 1;
+        const wordCount = text.split(/\s+/).length;
+        
+        // More variation for longer text
+        const variationAmount = Math.min(0.15, 0.05 + (wordCount / 200));
+        
+        // Random variation within a small range
+        const pitchVariation = (Math.random() * variationAmount * 2) - variationAmount;
+        const rateVariation = (Math.random() * variationAmount * 2) - variationAmount;
+        
+        // Base values
+        let basePitch = 1.0;
+        let baseRate = 1.0;
+        
+        // Configure speech parameters - slightly adjust for Indian accent if needed
+        if (this.voicePreference.accent === 'Indian' && !utterance.voice?.name.toLowerCase().includes('india')) {
+          basePitch = 1.1;  // Slightly higher pitch
+          baseRate = 0.9;   // Slightly slower rate
+        }
+        
+        // Apply variations (ensuring they stay within reasonable bounds)
+        utterance.pitch = Math.max(0.8, Math.min(1.2, basePitch + pitchVariation));
+        utterance.rate = Math.max(0.8, Math.min(1.2, baseRate + rateVariation));
       } else {
-        utterance.pitch = 1.0;
-        utterance.rate = 1.0;
+        // No variation - use standard parameters
+        if (this.voicePreference.accent === 'Indian' && !utterance.voice?.name.toLowerCase().includes('india')) {
+          utterance.pitch = 1.1;  // Slightly higher pitch
+          utterance.rate = 0.9;   // Slightly slower rate
+        } else {
+          utterance.pitch = 1.0;
+          utterance.rate = 1.0;
+        }
       }
+      
       utterance.volume = 1.0;
       
       // Set up event handlers
