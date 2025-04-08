@@ -39,6 +39,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setMessages([welcomeMessage]);
       setIsInitialized(true);
+      
+      // We don't want to auto-play speech on initial load
+      // to avoid unexpected sounds when the user first opens the app
     }
   }, [isInitialized]);
 

@@ -368,8 +368,16 @@ class ElevenLabsService {
 
   /**
    * Fallback to browser's SpeechSynthesis if Eleven Labs fails
+   * Note: Currently disabled to prevent double-speech issues
    */
   private fallbackToSpeechSynthesis(text: string): void {
+    // Disabled fallback to browser speech synthesis to prevent double-speaking
+    console.log('ElevenLabs API failed, but fallback to browser speech is disabled to prevent double-speaking');
+    
+    // Still notify that we're not speaking so UI updates correctly
+    this.notifySpeakingChange(false);
+    
+    /* Original fallback code preserved for reference:
     try {
       if (!window.speechSynthesis) return;
       
@@ -396,10 +404,10 @@ class ElevenLabsService {
       utterance.onerror = () => this.notifySpeakingChange(false);
       
       window.speechSynthesis.speak(utterance);
-      
     } catch (error) {
       console.error('Fallback speech synthesis failed:', error);
     }
+    */
   }
 
   /**

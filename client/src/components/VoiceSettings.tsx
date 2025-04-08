@@ -182,14 +182,14 @@ const VoiceSettings: React.FC<VoiceSettingsProps> = ({ className }) => {
             ) : (
               <>
                 <Select 
-                  value={selectedVoiceId || ""} 
-                  onValueChange={setSelectedVoiceId}
+                  value={selectedVoiceId || "auto"} 
+                  onValueChange={(value) => setSelectedVoiceId(value === "auto" ? undefined : value)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Auto (based on gender/accent)" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
-                    <SelectItem value="">Auto (best match)</SelectItem>
+                    <SelectItem value="auto">Auto (best match)</SelectItem>
                     {filteredVoices.map((voice) => (
                       <SelectItem key={voice.voice_id} value={voice.voice_id}>
                         {voice.name} {voice.gender && `(${voice.gender})`} {voice.accent && `- ${voice.accent}`}
