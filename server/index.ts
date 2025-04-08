@@ -1,10 +1,29 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Setup CORS for production environments
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',').map(origin => 
+          // If wildcard subdomain is specified (*.example.com), convert to regex
+          origin.trim().startsWith('*.') 
+            ? new RegExp(`^https://[^.]+\\.${origin.trim().substring(2).replace(/\./g, '\\.')}$`) 
+            : origin.trim())
+      : [/\.render\.com$/, /\.vercel\.app$/] // Allow Render and Vercel domains in production
+    : '*', // Allow all origins in development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
   const start = Date.now();

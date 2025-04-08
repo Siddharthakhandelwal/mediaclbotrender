@@ -1,0 +1,29 @@
+services:
+  # Web service with combined frontend/backend
+  - type: web
+    name: medical-assistant
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node scripts/start.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ELEVEN_LABS_API_KEY
+        sync: false
+      - key: PERPLEXITY_API_KEY
+        sync: false
+        preview: false
+        # Optional - Used for enhanced search capabilities with Perplexity AI
+      - key: ALLOWED_ORIGINS
+        value: ""
+        preview: false
+        # Add your allowed domains separated by commas like: https://yourdomain.com,https://app.yourdomain.com
+    healthCheckPath: /api/health
+    autoDeploy: true
+    # Uncomment the following lines if you need to specify a specific Node.js version
+    # envVars:
+    #   - key: NODE_VERSION
+    #     value: 18.18.0

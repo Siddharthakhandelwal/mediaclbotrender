@@ -80,6 +80,8 @@ git push -u origin main
 5. Add Environment Variables:
    - `GROQ_API_KEY` = your_groq_api_key
    - `ELEVEN_LABS_API_KEY` = your_eleven_labs_api_key
+   - `PERPLEXITY_API_KEY` = (Optional) your_perplexity_api_key for enhanced search capabilities
+   - `ALLOWED_ORIGINS` = (Optional) Comma-separated list of domains that can access your API, e.g., `https://yourdomain.com,https://app.yourdomain.com`
 
 6. Click "Deploy"
 
