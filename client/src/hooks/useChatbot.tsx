@@ -33,16 +33,8 @@ export const useChatbot = () => {
   useEffect(() => {
     scrollToBottom();
     
-    // Only speak the most recent assistant message when it's newly added
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'assistant' && !isLoading) {
-      // Use more natural speech with Eleven Labs
-      // Adding a small delay to allow UI to finish rendering
-      setTimeout(() => {
-        elevenLabsService.speak(lastMessage.content);
-      }, 300);
-    }
-  }, [messages, isLoading]);
+    // No auto-speaking as requested
+  }, [messages]);
   
   // Set up voice service speaking change listener
   useEffect(() => {

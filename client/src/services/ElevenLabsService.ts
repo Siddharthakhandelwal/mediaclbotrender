@@ -239,60 +239,8 @@ class ElevenLabsService {
    * Find the best matching voice based on preferences
    */
   private async findBestMatchingVoice(): Promise<string> {
-    // If we have a specific voice ID, use it
-    if (this.voicePreference.voice_id) {
-      return this.voicePreference.voice_id;
-    }
-    
-    // Make sure voices are loaded
-    if (!this.voicesLoaded) {
-      await this.loadVoices();
-    }
-    
-    const { gender, accent } = this.voicePreference;
-    
-    // Filter and score voices
-    let scoredVoices = this.voiceList.map(voice => {
-      let score = 0;
-      
-      // Gender match
-      if (voice.gender === gender) {
-        score += 100;
-      }
-      
-      // Accent match - exact
-      if (voice.accent === accent) {
-        score += 100;
-      }
-      // Accent partial match (e.g. "Indian" in description for Indian accent)
-      else if (voice.description && voice.description.toLowerCase().includes(accent.toLowerCase())) {
-        score += 50;
-      }
-      
-      // Premium voices generally have better quality
-      if (voice.category === 'premium') {
-        score += 10;
-      }
-      
-      return { voice, score };
-    });
-    
-    // Sort by score
-    scoredVoices.sort((a, b) => b.score - a.score);
-    
-    // Log top matches for debugging
-    console.log('Top Eleven Labs voices for', this.voicePreference, ':', 
-      scoredVoices.slice(0, 3).map(v => `${v.voice.name}: ${v.score}`));
-    
-    // Return the highest scoring voice or a default (Rachel is a good default female voice)
-    const bestMatch = scoredVoices[0]?.voice.voice_id;
-    const defaultVoice = '21m00Tcm4TlvDq8ikWAM'; // Rachel voice ID
-    const result = bestMatch || defaultVoice;
-    
-    console.log('Selected Eleven Labs voice:', 
-      this.voiceList.find(v => v.voice_id === result)?.name || 'Unknown');
-    
-    return result;
+    // Always use the specified voice ID as requested
+    return "ftDdhfYtmfGP0tFlBYA1";
   }
 
   /**
