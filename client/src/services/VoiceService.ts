@@ -1,10 +1,21 @@
 // Voice service to handle speech-to-text and text-to-speech operations
 
+// Define voice preferences interface
+interface VoicePreference {
+  gender: 'male' | 'female';
+  accent: string;
+  voiceIndex?: number;
+}
+
 class VoiceService {
   private speechSynthesis: SpeechSynthesis;
   private voices: SpeechSynthesisVoice[] = [];
   private speaking: boolean = false;
   private speakingCallbacks: ((speaking: boolean) => void)[] = [];
+  private voicePreference: VoicePreference = {
+    gender: 'female',
+    accent: 'Indian'
+  };
 
   constructor() {
     this.speechSynthesis = window.speechSynthesis;
@@ -21,6 +32,136 @@ class VoiceService {
   private loadVoices(): void {
     // Get the available voices
     this.voices = this.speechSynthesis.getVoices();
+    console.log('Available voices:', this.voices.map(v => `${v.name} (${v.lang})`));
+  }
+  
+  /**
+   * Set voice preference
+   * @param preference Voice preference settings
+   */
+  public setVoicePreference(preference: Partial<VoicePreference>): void {
+    this.voicePreference = { ...this.voicePreference, ...preference };
+    console.log('Voice preference set:', this.voicePreference);
+  }
+  
+  /**
+   * Get current voice preference
+   */
+  public getVoicePreference(): VoicePreference {
+    return { ...this.voicePreference };
+  }
+
+  /**
+   * Find the best voice matching the current preferences
+   * @returns The best match voice or undefined if none found
+   */
+  private findBestMatchingVoice(): SpeechSynthesisVoice | undefined {
+    if (this.voices.length === 0) return undefined;
+    
+    // If user has explicitly set a voice index, use that
+    if (this.voicePreference.voiceIndex !== undefined) {
+      return this.voices[this.voicePreference.voiceIndex];
+    }
+    
+    const { gender, accent } = this.voicePreference;
+    
+    // Build a scoring function for voices based on preference
+    const scoreVoice = (voice: SpeechSynthesisVoice): number => {
+      let score = 0;
+      
+      // For female Indian accent
+      if (gender === 'female' && accent === 'Indian') {
+        // Directly prefer voices that match these criteria
+        if (voice.name.toLowerCase().includes('female') && 
+            (voice.name.toLowerCase().includes('india') || voice.name.toLowerCase().includes('hindi') || 
+             voice.lang === 'hi-IN' || voice.lang === 'en-IN')) {
+          score += 100;
+        }
+        
+        // Microsoft Heera is a good female Indian English voice
+        if (voice.name.includes('Microsoft Heera')) {
+          score += 150;
+        }
+        
+        // Google Hindi voices
+        if (voice.name.includes('Google') && voice.lang === 'hi-IN') {
+          score += 80;
+        }
+        
+        // General female voice detection
+        if (voice.name.toLowerCase().includes('female') || 
+            voice.name.includes('Kalpana') || 
+            voice.name.includes('Veena') || 
+            voice.name.includes('Tara') || 
+            voice.name.includes('Lekha')) {
+          score += 50;
+        }
+        
+        // Any Hindi or Indian English
+        if (voice.lang === 'hi-IN' || voice.lang === 'en-IN') {
+          score += 30;
+        }
+      }
+      
+      // For male Indian accent
+      if (gender === 'male' && accent === 'Indian') {
+        if (voice.name.toLowerCase().includes('male') && 
+            (voice.name.toLowerCase().includes('india') || voice.name.toLowerCase().includes('hindi') || 
+             voice.lang === 'hi-IN' || voice.lang === 'en-IN')) {
+          score += 100;
+        }
+        
+        // General male voice detection
+        if (voice.name.toLowerCase().includes('male')) {
+          score += 50;
+        }
+        
+        // Any Hindi or Indian English
+        if (voice.lang === 'hi-IN' || voice.lang === 'en-IN') {
+          score += 30;
+        }
+      }
+      
+      // Default female voice
+      if (gender === 'female' && !accent) {
+        if (voice.name.toLowerCase().includes('female')) {
+          score += 50;
+        }
+      }
+      
+      // Default male voice
+      if (gender === 'male' && !accent) {
+        if (voice.name.toLowerCase().includes('male')) {
+          score += 50;
+        }
+      }
+      
+      // General en-US/en-GB quality voices as fallback
+      if (voice.lang === 'en-US' || voice.lang === 'en-GB') {
+        score += 10;
+      }
+      
+      // Slightly prefer Google voices as they tend to be good quality
+      if (voice.name.includes('Google')) {
+        score += 5;
+      }
+      
+      return score;
+    };
+    
+    // Score all voices and pick the highest scoring one
+    const scoredVoices = this.voices.map(voice => ({
+      voice,
+      score: scoreVoice(voice)
+    }));
+    
+    scoredVoices.sort((a, b) => b.score - a.score);
+    
+    // Log top 3 voices for debugging
+    console.log('Top voices for', this.voicePreference, ':', 
+      scoredVoices.slice(0, 3).map(v => `${v.voice.name} (${v.voice.lang}): ${v.score}`));
+    
+    return scoredVoices[0]?.voice || this.voices[0];
   }
 
   /**
@@ -39,20 +180,26 @@ class VoiceService {
 
       const utterance = new SpeechSynthesisUtterance(text);
       
-      // Set voice if provided, otherwise default to first available voice
+      // If explicit voice index is provided, use it
       if (voiceIndex !== undefined && this.voices.length > voiceIndex) {
         utterance.voice = this.voices[voiceIndex];
       } else {
-        // Select a voice that sounds natural - prefer en-US voices
-        const preferredVoice = this.voices.find(
-          voice => voice.lang === 'en-US' && voice.name.includes('Google') || voice.name.includes('Natural')
-        );
-        utterance.voice = preferredVoice || this.voices[0];
+        // Otherwise use voice preferences
+        const bestMatchVoice = this.findBestMatchingVoice();
+        utterance.voice = bestMatchVoice || this.voices[0];
       }
       
-      // Configure speech parameters
-      utterance.pitch = 1.0;
-      utterance.rate = 1.0;
+      // Log the selected voice
+      console.log('Using voice:', utterance.voice ? `${utterance.voice.name} (${utterance.voice.lang})` : 'Default');
+      
+      // Configure speech parameters - slightly adjust for Indian accent if needed
+      if (this.voicePreference.accent === 'Indian' && !utterance.voice?.name.toLowerCase().includes('india')) {
+        utterance.pitch = 1.1;  // Slightly higher pitch
+        utterance.rate = 0.9;   // Slightly slower rate
+      } else {
+        utterance.pitch = 1.0;
+        utterance.rate = 1.0;
+      }
       utterance.volume = 1.0;
       
       // Set up event handlers

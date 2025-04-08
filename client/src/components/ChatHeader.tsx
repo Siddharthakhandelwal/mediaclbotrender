@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, Info, Minimize, Maximize } from 'lucide-react';
+import { Info, Minimize, Maximize } from 'lucide-react';
 import { getAvatarUrl } from '@/lib/utils';
+import VoiceSettings from './VoiceSettings';
 
 const ChatHeader: React.FC = () => {
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
@@ -55,14 +56,7 @@ const ChatHeader: React.FC = () => {
         >
           <Info className="h-5 w-5" />
         </Button>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="text-white hover:bg-primary-dark rounded-full h-9 w-9 p-0"
-          title="Settings"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+        <VoiceSettings className="text-white hover:bg-primary-dark rounded-full h-9 w-9 p-0" />
         <Button 
           variant="ghost" 
           size="icon" 
